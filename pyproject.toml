@@ -1,0 +1,30 @@
+[project]
+name = "heronlm"
+version = "0.1.0"
+description = "PyTorch reference implementation of the HeronLM architecture: looped core, swappable domain experts, n-gram memory table"
+readme = "README.md"
+requires-python = ">=3.14"
+# torch is the reference's only real dependency. numpy is declared because torch's tensor-to-numpy path is
+# used when measurements are written out, and without it every run prints a warning that is easy to mistake
+# for a problem with the harness rather than with the environment.
+#
+# gguf is declared for the converter, and only for the converter. The rest of `heronlm` stays free of it: the
+# reference is the parity oracle, and if the reference imported gguf then a fact like a token type code would
+# be a library constant rather than a number the reference states and a test keeps equal. The tokenizer file is
+# read by the CLI, not by `heronlm`, for the same reason - so `tokenizers` is not a dependency of the reference
+# either.
+dependencies = [
+    "gguf>=0.10",
+    "numpy>=2.2",
+    "torch>=2.6",
+]
+
+# Declared so `heronlm` and `phase0` can be imported as packages rather than only through a sys.path
+# insertion. The tests keep the insertion so they can run without an install step, but a parity test that
+# requires an install step is a test that cannot be run on the machine doing the fork work.
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["heronlm", "phase0"]
