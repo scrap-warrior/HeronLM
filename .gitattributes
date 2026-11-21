@@ -1,0 +1,24 @@
+# Line endings are fixed by the repository rather than by each machine. `core.autocrlf` is a per-machine
+# setting, so the same commit produces different bytes on a Windows clone and on the Linux worker that
+# runs the gate. Several claims in this project depend on inputs being the same bytes rather than the
+# same content, so a local config is not allowed to decide that.
+* text=auto eol=lf
+
+# Data files are not text. The pinned tokenizer is the vocabulary the reference reads, and the corpus
+# manifest stores a digest of the bytes the ids came from; normalising line endings in either turns a
+# checkout on another machine into a different input, which is exactly the failure the pin exists to
+# prevent.
+tokenizer/** -text
+*.json -text
+
+# Binary: never diffed, never merged by hand, never converted.
+*.pt -text
+*.safetensors -text
+*.gguf -text
+*.bin -text
+*.npy -text
+*.parquet -text
+
+# Records are read as data by the harness, but they are the one artifact worth reviewing in a diff, so
+# they are treated as text even though nothing merges them.
+*.jsonl text eol=lf

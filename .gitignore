@@ -1,0 +1,53 @@
+# Every rule here is stated with the reason it exists, because two different things are being kept
+# apart: source, and the evidence a run produces. Line endings are the other half of this and live in
+# .gitattributes, because they are a repository decision rather than a machine setting.
+
+# --- Python ------------------------------------------------------------
+__pycache__/
+*.py[cod]
+
+# The interpreter is pinned in .python-version, so a clone can rebuild the environment without the
+# environment itself being committed.
+.venv/
+venv/
+
+# Secrets. A rented-card run needs a token, and the usual way a repository leaks is the file that
+# holds it. `.env.example` is the one file in this shape that is worth keeping, because it records
+# which variables a run needs without recording their values.
+.env
+.env.*
+!.env.example
+
+# --- Editor and IDE state ----------------------------------------------
+# IDE state is per-machine. A conflict in it is an argument about a window layout rather than about
+# the reference. `.idea/` was committed before this rule existed and is now untracked.
+.idea/
+.vscode/
+
+# --- Run artifacts: evidence, not source -------------------------------
+# A gate-scale checkpoint is 3.34 GB per arm and a corpus shard is 200 MB, so the reason to ignore
+# these is not only size. A recorded number is evidence only together with the key that produced it,
+# and that key lives in the record rather than in the tensor file: committing a checkpoint keeps the
+# loss and throws away the claim. Committing the corpus is worse, because the epoch permutation is
+# defined by each shard's token count, so a corpus that grows changes what sample index i means and
+# invalidates every record written against the previous shape.
+#
+# Output directories are created on demand by the harness, so nothing here needs a placeholder file.
+runs/*
+corpus/*
+
+# Extensions as well as directories, so an arm written outside the default root is still ignored.
+# There is deliberately no `*.json` rule: the pinned tokenizer file is tracked source, and it is the
+# input the reference reads. A fixture that has to be committed anyway is deliberate evidence, and
+# `git add -f` is what makes that exception visible instead of implicit.
+*.pt
+*.safetensors
+*.gguf
+*.bin
+*.npy
+*.parquet
+*.log
+
+# --- Machine noise -------------------------------------------------------
+.DS_Store
+Thumbs.db
