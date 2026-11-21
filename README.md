@@ -23,14 +23,27 @@ harness cannot quietly change what the oracle means.
 No install step is required; the tests keep a `sys.path` insertion so they run from a clone.
 
 ```
-python tests/test_reference.py     # reference behaviour and parity
-python tests/test_converter.py     # tensor-name and scheme mapping
-python tests/test_loader.py        # file reading, quant schemes, metadata
-python tests/test_phase0.py        # gates, arms, corpus, training
-python tests/test_phase1.py        # Phase 1 gate plumbing
-python tests/preflight.py          # measured params, memory, throughput
+python tests/run_tests.py            # all five suites, one process per suite
+python tests/test_reference.py       # reference behaviour and parity
+python tests/test_converter.py       # tensor-name and scheme mapping
+python tests/test_loader.py          # file reading, quant schemes, metadata
+python tests/test_phase0.py          # gates, arms, corpus, training
+python tests/test_phase1.py          # Phase 1 gate plumbing
+python tests/preflight.py            # measured params, memory, throughput (not a test)
+```
+
+The runner uses one process per suite because the settings the tests depend on are process-wide: default
+dtype, the TF32 flags the Phase 0 training tests set, and RNG state. Each module is still runnable on its
+own, and the runner is only an aggregator.
+
+The harness itself is run through the drivers:
+
+```
 python scripts/phase0.py           # driver; --scale phase0 needs a GPU
+python scripts/phase1.py           # Phase 1 driver
 python scripts/tokenize_corpus.py  # text -> uint32 shards plus manifest
+python scripts/convert_to_gguf.py  # reference model -> GGUF
+python scripts/report.py           # TINY-scale walkthrough report
 ```
 
 ## Conventions the code enforces
