@@ -1581,18 +1581,6 @@ def test_the_cli_writes_a_quantized_file_and_states_the_type_it_derived_and_the_
 
 
 if __name__ == "__main__":
-    import sys
+    from tests import run_tests
 
-    failures = 0
-    for name, fn in sorted(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            try:
-                fn()
-                print(f"ok    {name}")
-            except AssertionError as e:
-                failures += 1
-                print(f"FAIL  {name}: {e}")
-            except Exception as e:
-                failures += 1
-                print(f"ERROR {name}: {type(e).__name__}: {e}")
-    sys.exit(1 if failures else 0)
+    raise SystemExit(1 if run_tests.run(globals()) else 0)

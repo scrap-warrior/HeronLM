@@ -603,13 +603,6 @@ def test_delta_loss_sign_and_the_decode_path_cannot_produce_it():
 
 
 if __name__ == "__main__":
-    failures = 0
-    for name, fn in sorted(globals().items()):
-        if name.startswith("test_") and callable(fn):
-            try:
-                fn()
-                print(f"ok    {name}")
-            except AssertionError as e:
-                failures += 1
-                print(f"FAIL  {name}: {e}")
-    sys.exit(1 if failures else 0)
+    from tests import run_tests
+
+    raise SystemExit(1 if run_tests.run(globals()) else 0)
