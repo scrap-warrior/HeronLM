@@ -1,0 +1,15 @@
+HeronLM
+Copyright 2026 scrap-warrior
+
+This product includes third-party content that is not the author's work and is not covered by the
+license in LICENSE. Attribution for it is recorded here rather than inside the license text.
+
+The pinned tokenizer files under `tokenizer/qwen2.5/` are third-party content, kept byte-for-byte as
+retrieved, and their provenance (source repository, retrieval date, SHA-256 of each file) is recorded in
+`tokenizer/qwen2.5/README.md`. They are read as data by the CLI and as the vocabulary the reference
+states; nothing in `heronlm` imports the package that produced them.
+
+The pinned engine branch referenced by the ROADMAP (`ggml-org/llama.cpp`, PR #30306, commit
+98a74c97ea09ac72f6ceda1559808fc0a2f447ce) is not vendored in this repository. If engine code is ever
+added, its license terms and any notice it carries have to be recorded here, because a license file
+cannot describe content it did not cover.

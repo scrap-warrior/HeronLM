@@ -69,6 +69,13 @@ python scripts/report.py           # TINY-scale walkthrough report
 as data it reads, so a fact like a token type code stays a number the reference states and a test keeps
 equal, rather than a library constant.
 
+## License
+
+Apache-2.0, in `LICENSE`. The scope is what this repository's own code and prose cover: the pinned
+tokenizer files are third-party content and are not covered by it. Their provenance is recorded in
+`tokenizer/qwen2.5/README.md` and the attribution is in `NOTICE`, because a license file cannot describe
+content it did not cover, so the line between the two is stated rather than assumed.
+
 ## Not committed
 
 Run artifacts are evidence, not source: a recorded number is only meaningful with the key that produced
