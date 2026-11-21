@@ -1,0 +1,38 @@
+# The suites are the parity oracle, so this job runs them and nothing else. It is not a scale check: the
+# numbers in ROADMAP are measured at gate scale on a card, and a runner reproduces none of them. What a
+# runner can reproduce is the mechanism tests, which is why every suite here runs at TINY scale.
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suites:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the interpreter .python-version and requires-python declare. A deterministic suite run on
+      # a different minor version reports numbers the record does not describe, so the version is part of the
+      # job rather than whatever the runner image happens to carry.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      # The CPU wheel specifically. PyPI's default Linux wheel for torch bundles the CUDA runtime, which is
+      # most of the cost of a job that has no GPU to use it, and it changes which build the measured numbers
+      # came from. It is installed before the project dependencies so the CPU build is the one that satisfies
+      # `torch>=2.6`.
+      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu torch
+      - run: python -m pip install -r pyproject.toml
+
+      # `tests/preflight.py` is not run here on purpose. It measures params, memory and throughput at gate
+      # scale, and a runner has no card to measure on; a number reported from a runner would be a record of
+      # the runner rather than a record of the design.
+      - run: python tests/run_tests.py
