@@ -16,9 +16,11 @@ Format, kept deliberately boring so any tokenizer can produce it:
     val-000000.bin
 
 Each .bin is little-endian uint32 token ids, no header. Each manifest shard records its token count, and the
-loader checks the file size against it. A window never crosses a shard boundary: a shard is a document
-boundary, and a target at the last token of one document must not be the first token of an unrelated next
-document.
+loader checks the file size against it. A window never crosses a shard boundary, and that is the property the
+held-out loss needs: a target is always the token that followed its input inside the same shard, so it cannot be
+the first token of an unrelated next document. A shard is not always one document - a flush happens at a fixed
+token count, so a long document can straddle two shards - which is why the document boundaries are recorded
+separately by `phase0.documents` rather than assumed from the shard list.
 
 Splits are by shard, not by window. `train` and `val` therefore cannot overlap by construction, which is the
 property the Phase 0 held-out loss needs. The split is not a random per-window mask that could leak a
@@ -68,12 +70,19 @@ def _canonical_digest(payload: dict) -> str:
 
 
 def write_manifest(root: str | Path, shards: list[dict], vocab_size: int,
-                   tokenizer: dict | None = None, created_by: str | None = None) -> dict:
+                   tokenizer: dict | None = None, created_by: str | None = None,
+                   extra: dict | None = None) -> dict:
     """
     Write manifest.json and return the payload that was written.
 
     `tokenizer` is free-form metadata (name, file hash, vocab size) recorded for provenance. The loader only
     requires the corpus-wide `vocab_size`, because that is the bound a token id has to respect.
+
+    `extra` is the record of how the corpus was built - policy, seed, fractions, sources, counts, index - merged
+    into the payload before the digest is computed. It is inside the digest on purpose: a manifest that records
+    which documents were dropped is a record a resume validates, not a comment that can be edited without
+    anything noticing. The builder's decisions are what make two corpora of the same size different corpora, so
+    they belong in the corpus identity rather than beside it.
     """
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
@@ -115,6 +124,14 @@ def write_manifest(root: str | Path, shards: list[dict], vocab_size: int,
             for s in shards
         ],
     }
+    # `extra` is merged, not replaced, so the format keys the loader depends on cannot be overwritten by a
+    # builder record. If a key appears in both, that is a conflict between the format and the record, and
+    # refusing is better than letting the record win: the digest would then describe a payload the reader does
+    # not build.
+    for key, value in (extra or {}).items():
+        if key in payload:
+            raise ValueError(f"extra manifest key {key!r} conflicts with a format key the loader reads")
+        payload[key] = value
     payload["digest"] = _canonical_digest(payload)
     (root / "manifest.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return payload
@@ -267,6 +284,18 @@ class ShardWriter:
             else:
                 self._flush()
         return list(self._shards)
+
+    def logical_offset(self) -> int:
+        """
+        Where the next appended token lands in this split's token stream.
+
+        Shards are contiguous: the stream is shard 0, then shard 1, and so on. `close()` folds a short remainder
+        into the last shard, so a position recorded before that point can name a shard that will not exist. The
+        logical offset is the one number that does not depend on when the flush happens, which is why the
+        document index records it and derives the shard name from the finished shard list rather than from the
+        buffer state at write time.
+        """
+        return sum(int(shard["tokens"]) for shard in self._shards) + len(self._buffer)
 
     def __enter__(self) -> "ShardWriter":
         return self
