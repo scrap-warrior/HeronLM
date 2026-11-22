@@ -41,9 +41,10 @@ The harness itself is run through the drivers:
 ```
 python scripts/phase0.py           # driver; --scale phase0 needs a GPU
 python scripts/phase1.py           # Phase 1 driver
-python scripts/tokenize_corpus.py  # text -> uint32 shards plus manifest
+python scripts/tokenize_corpus.py  # text or parquet rows -> uint32 shards, manifest, document index
 python scripts/convert_to_gguf.py  # reference model -> GGUF
 python scripts/report.py           # TINY-scale walkthrough report
+bash scripts/deploy_3060.sh        # setup + pilot + run on the Linux card; its flags are the run key
 ```
 
 ## Conventions the code enforces
@@ -68,6 +69,22 @@ python scripts/report.py           # TINY-scale walkthrough report
 `tokenizers` is deliberately not a dependency: the reference treats vocab, merges and the chat template
 as data it reads, so a fact like a token type code stays a number the reference states and a test keeps
 equal, rather than a library constant.
+
+`pyarrow` is not declared either, and is used by the corpus builder's CLI alone. `phase0.documents` holds the
+document rules and takes `encode` as a function rather than importing a tokenizer, so the rules and their
+tests run with an in-memory source and no parquet reader - which is what keeps CI runnable without it. The
+builder reports a missing reader before the first read, because a run that cannot read the corpus is a run
+that should not have started. `huggingface_hub` is not declared either: it is the download step, and the
+reference has no reason to know that a corpus came from a hub.
+
+Two things on the run machine are worth stating because both change what a number means. Install order:
+PyPI's Linux wheel for `torch` is the CPU build, and `torch>=2.6` in `pyproject.toml` is satisfied by it, so
+a plain install quietly installs the CPU wheel and a run trains on CPU while still printing a card name -
+CUDA torch comes from the wheel index first, then `uv pip install --no-deps -e .`. And `tests/preflight.py`
+measures peak memory through a Windows psapi call, so on Linux it prints no peak line and its memory figures
+stay arithmetic: they are what the module shapes hold, not what a device was observed holding.
+`scripts/deploy_3060.sh` samples the card with `nvidia-smi` during its pilot instead, and labels which of its
+numbers is a sample and which is a measurement.
 
 ## License
 
